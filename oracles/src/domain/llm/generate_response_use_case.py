@@ -20,6 +20,10 @@ async def execute(model: str, chat: Chat) -> LLMResult:
             else:
                 response = await basic_llm.execute(model, messages=chat.messages)
         elif chat.prompt_type == PromptType.OPENAI:
+            for message in chat.messages:
+                for content in message['content']:
+                    if isinstance(content['text'], bytes):
+                        content['text'] = content['text'].decode('utf-8')
             response = await openai_llm.execute(chat)
         elif chat.prompt_type == PromptType.GROQ:
             response = await groq_llm.execute(chat)

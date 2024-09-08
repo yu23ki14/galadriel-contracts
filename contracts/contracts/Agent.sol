@@ -8,8 +8,7 @@ import "./interfaces/IOracle.sol";
 // @title Agent
 // @notice This contract interacts with teeML oracle to run agents that perform multiple iterations of querying and responding using a large language model (LLM).
 contract Agent {
-
-    string public prompt;
+    bytes public prompt;
 
     struct AgentRun {
         address owner;
@@ -40,28 +39,25 @@ contract Agent {
 
     // @param initialOracleAddress Initial address of the oracle contract
     // @param systemPrompt Initial prompt for the system message
-    constructor(
-        address initialOracleAddress,         
-        string memory systemPrompt
-    ) {
+    constructor(address initialOracleAddress, bytes memory systemPrompt) {
         owner = msg.sender;
         oracleAddress = initialOracleAddress;
         prompt = systemPrompt;
 
         config = IOracle.OpenAiRequest({
-            model : "gpt-4-turbo-preview",
-            frequencyPenalty : 21, // > 20 for null
-            logitBias : "", // empty str for null
-            maxTokens : 1000, // 0 for null
-            presencePenalty : 21, // > 20 for null
-            responseFormat : "{\"type\":\"text\"}",
-            seed : 0, // null
-            stop : "", // null
-            temperature : 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
-            topP : 101, // Percentage 0-100, > 100 means null
-            tools : "[{\"type\":\"function\",\"function\":{\"name\":\"web_search\",\"description\":\"Search the internet\",\"parameters\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"Search query\"}},\"required\":[\"query\"]}}},{\"type\":\"function\",\"function\":{\"name\":\"image_generation\",\"description\":\"Generates an image using Dalle-2\",\"parameters\":{\"type\":\"object\",\"properties\":{\"prompt\":{\"type\":\"string\",\"description\":\"Dalle-2 prompt to generate an image\"}},\"required\":[\"prompt\"]}}}]",
-            toolChoice : "auto", // "none" or "auto"
-            user : "" // null
+            model: "gpt-4-turbo-preview",
+            frequencyPenalty: 21, // > 20 for null
+            logitBias: "", // empty str for null
+            maxTokens: 1000, // 0 for null
+            presencePenalty: 21, // > 20 for null
+            responseFormat: '{"type":"text"}',
+            seed: 0, // null
+            stop: "", // null
+            temperature: 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
+            topP: 101, // Percentage 0-100, > 100 means null
+            tools: '[{"type":"function","function":{"name":"web_search","description":"Search the internet","parameters":{"type":"object","properties":{"query":{"type":"string","description":"Search query"}},"required":["query"]}}},{"type":"function","function":{"name":"image_generation","description":"Generates an image using Dalle-2","parameters":{"type":"object","properties":{"prompt":{"type":"string","description":"Dalle-2 prompt to generate an image"}},"required":["prompt"]}}}]',
+            toolChoice: "auto", // "none" or "auto"
+            user: "" // null
         });
     }
 
@@ -89,7 +85,10 @@ contract Agent {
     // @param query The initial user query
     // @param max_iterations The maximum number of iterations for the agent run
     // @return The ID of the newly created agent run
-    function runAgent(string memory query, uint8 max_iterations) public returns (uint) {
+    function runAgent(
+        bytes memory query,
+        uint8 max_iterations
+    ) public returns (uint) {
         AgentRun storage run = agentRuns[agentRunCount];
 
         run.owner = msg.sender;
@@ -97,10 +96,13 @@ contract Agent {
         run.responsesCount = 0;
         run.max_iterations = max_iterations;
 
-        IOracle.Message memory systemMessage = createTextMessage("system", prompt);
+        IOracle.Message memory systemMessage = createTextMessage(
+            "system",
+            prompt
+        );
         run.messages.push(systemMessage);
 
-        IOracle.Message memory newMessage =  createTextMessage("user", query);
+        IOracle.Message memory newMessage = createTextMessage("user", query);
         run.messages.push(newMessage);
 
         uint currentId = agentRunCount;
@@ -120,12 +122,15 @@ contract Agent {
     function onOracleOpenAiLlmResponse(
         uint runId,
         IOracle.OpenAiResponse memory response,
-        string memory errorMessage
+        bytes memory errorMessage
     ) public onlyOracle {
         AgentRun storage run = agentRuns[runId];
 
-        if (!compareStrings(errorMessage, "")) {
-            IOracle.Message memory newMessage = createTextMessage("assistant", errorMessage);
+        if (!compareStrings(string(errorMessage), "")) {
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                errorMessage
+            );
             run.messages.push(newMessage);
             run.responsesCount++;
             run.is_finished = true;
@@ -135,13 +140,20 @@ contract Agent {
             run.is_finished = true;
             return;
         }
-        if (!compareStrings(response.content, "")) {
-            IOracle.Message memory newMessage = createTextMessage("assistant", response.content);
+        if (!compareStrings(string(response.content), "")) {
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                response.content
+            );
             run.messages.push(newMessage);
             run.responsesCount++;
         }
         if (!compareStrings(response.functionName, "")) {
-            IOracle(oracleAddress).createFunctionCall(runId, response.functionName, response.functionArguments);
+            IOracle(oracleAddress).createFunctionCall(
+                runId,
+                response.functionName,
+                response.functionArguments
+            );
             return;
         }
         run.is_finished = true;
@@ -154,18 +166,18 @@ contract Agent {
     // @dev Called by teeML oracle
     function onOracleFunctionResponse(
         uint runId,
-        string memory response,
-        string memory errorMessage
+        bytes memory response,
+        bytes memory errorMessage
     ) public onlyOracle {
         AgentRun storage run = agentRuns[runId];
         require(!run.is_finished, "Run is finished");
 
-        string memory result = response;
-        if (!compareStrings(errorMessage, "")) {
+        bytes memory result = response;
+        if (!compareStrings(string(errorMessage), "")) {
             result = errorMessage;
         }
 
-        IOracle.Message memory newMessage =  createTextMessage("user", result);
+        IOracle.Message memory newMessage = createTextMessage("user", result);
         run.messages.push(newMessage);
         run.responsesCount++;
         IOracle(oracleAddress).createOpenAiLlmCall(runId, config);
@@ -175,7 +187,9 @@ contract Agent {
     // @param agentId The ID of the agent run
     // @return An array of messages
     // @dev Called by teeML oracle
-    function getMessageHistory(uint agentId) public view returns (IOracle.Message[] memory) {
+    function getMessageHistory(
+        uint agentId
+    ) public view returns (IOracle.Message[] memory) {
         return agentRuns[agentId].messages;
     }
 
@@ -190,7 +204,10 @@ contract Agent {
     // @param role The role of the message
     // @param content The content of the message
     // @return The created message
-    function createTextMessage(string memory role, string memory content) private pure returns (IOracle.Message memory) {
+    function createTextMessage(
+        string memory role,
+        bytes memory content
+    ) private pure returns (IOracle.Message memory) {
         IOracle.Message memory newMessage = IOracle.Message({
             role: role,
             content: new IOracle.Content[](1)
@@ -204,7 +221,11 @@ contract Agent {
     // @param a The first string
     // @param b The second string
     // @return True if the strings are equal, false otherwise
-    function compareStrings(string memory a, string memory b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) ==
+            keccak256(abi.encodePacked((b))));
     }
 }

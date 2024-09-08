@@ -5,6 +5,8 @@ from typing import List
 from typing import Optional
 from typing import get_args
 
+import web3.utils
+
 from groq.types.chat import ChatCompletion as GroqChatCompletion
 from openai.types.chat import ChatCompletion
 from openai.types.chat import ChatCompletionToolParam
@@ -23,6 +25,7 @@ from src.entities import AnthropicModelType
 from src.entities import PromptType
 from src.repositories.web3.base import Web3BaseRepository
 
+from eth_abi import encode
 
 class Web3ChatRepository(Web3BaseRepository):
     def __init__(self) -> None:
@@ -195,6 +198,8 @@ class Web3ChatRepository(Web3BaseRepository):
         if chain_id := settings.CHAIN_ID:
             tx_data["chainId"] = int(chain_id)
         if chat.prompt_type == PromptType.OPENAI:
+            print(_format_openai_response(chat.response))
+            print(tx_data)
             tx = await self.oracle_contract.functions.addOpenAiResponse(
                 chat.id,
                 chat.callback_id,
@@ -419,9 +424,37 @@ def _format_openai_response(completion: Optional[ChatCompletion]) -> Dict:
             "totalTokens": 0,
         }
     choice = completion.choices[0].message
+
+        # 構造体に対応するデータ
+    analysis_data = [
+        '0xdCb93093424447bF4FE9Df869750950922F1E30B',
+        'analyzeFunction',                            # functionName
+        'Analysis description',                       # description
+        100,                                          # value
+        2,                                            # complexity
+        3                                             # riskLevel
+    ]
+
+    parameters_data = [
+        'Monster A',                                  # name
+        'Powerful monster',                           # description
+        1500,                                         # health
+        50,                                           # attack
+        30,                                           # defense
+        20,                                           # speed
+        10                                            # magic
+    ]
+    content = encode(
+        ['(address,string,string,uint256,uint8,uint8)', '(string,string,uint256,uint64,uint64,uint64,uint64)'],
+        [
+            analysis_data, parameters_data
+        ]
+    )
+    print(content)
     return {
         "id": completion.id,
-        "content": choice.content if choice.content else "",
+        # "content": choice.content if choice.content else "",
+        "content": content,
         "functionName": choice.tool_calls[0].function.name if choice.tool_calls else "",
         "functionArguments": (
             choice.tool_calls[0].function.arguments if choice.tool_calls else ""

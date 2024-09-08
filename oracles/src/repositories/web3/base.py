@@ -12,9 +12,14 @@ class Web3BaseRepository:
         self.account = self.web3_client.eth.account.from_key(settings.PRIVATE_KEY)
         with open(settings.ORACLE_ABI_PATH, "r", encoding="utf-8") as f:
             oracle_abi = json.loads(f.read())["abi"]
+        with open(settings.MONSTER_NFT_ABI_PATH, "r", encoding="utf-8") as f:
+            monster_abi = json.loads(f.read())["abi"]
 
         self.oracle_contract = self.web3_client.eth.contract(
             address=settings.ORACLE_ADDRESS, abi=oracle_abi
+        )
+        self.monster_nft = self.web3_client.eth.contract(
+            address=settings.MONSTER_NFT_ADDRESS, abi=monster_abi
         )
         self.metrics = {
             "transactions_sent": 0,

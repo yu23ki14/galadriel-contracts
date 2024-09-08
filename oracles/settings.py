@@ -16,6 +16,8 @@ WEB3_RPC_URL = os.getenv("WEB3_RPC_URL", "https://devnet.galadriel.com")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 ORACLE_ADDRESS = os.getenv("ORACLE_ADDRESS")
 ORACLE_ABI_PATH = os.getenv("ORACLE_ABI_PATH", "abi/ChatOracle.json")
+MONSTER_NFT_ADDRESS = os.getenv("MONSTER_NFT_ADDRESS")
+MONSTER_NFT_ABI_PATH = os.getenv("MONSTER_NFT_ABI_PATH", "abi/ChatOracle.json")
 
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "galadriel-assets")
 SERVE_METRICS = os.getenv("SERVE_METRICS", "False").lower() == "true"

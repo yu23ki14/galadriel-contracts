@@ -8,7 +8,6 @@ import "./interfaces/IOracle.sol";
 // @title OpenAiChatGptVision
 // @notice This contract interacts with teeML oracle to handle multi-modal chat interactions using the OpenAI model.
 contract OpenAiChatGptVision {
-
     struct ChatRun {
         address owner;
         IOracle.Message[] messages;
@@ -41,19 +40,19 @@ contract OpenAiChatGptVision {
         chatRunsCount = 0;
 
         config = IOracle.OpenAiRequest({
-            model : "gpt-4-turbo",
-            frequencyPenalty : 21, // > 20 for null
-            logitBias : "", // empty str for null
-            maxTokens : 1000, // 0 for null
-            presencePenalty : 21, // > 20 for null
-            responseFormat : "{\"type\":\"text\"}",
-            seed : 0, // null
-            stop : "", // null
-            temperature : 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
-            topP : 101, // Percentage 0-100, > 100 means null
-            tools : "",
-            toolChoice : "", // "none" or "auto"
-            user : "" // null
+            model: "gpt-4-turbo",
+            frequencyPenalty: 21, // > 20 for null
+            logitBias: "", // empty str for null
+            maxTokens: 1000, // 0 for null
+            presencePenalty: 21, // > 20 for null
+            responseFormat: '{"type":"text"}',
+            seed: 0, // null
+            stop: "", // null
+            temperature: 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
+            topP: 101, // Percentage 0-100, > 100 means null
+            tools: "",
+            toolChoice: "", // "none" or "auto"
+            user: "" // null
         });
     }
 
@@ -80,7 +79,10 @@ contract OpenAiChatGptVision {
     // @param message The initial text message
     // @param imageUrls The array of image URLs
     // @return The ID of the newly created chat
-    function startChat(string memory message, string[] memory imageUrls) public returns (uint) {
+    function startChat(
+        bytes memory message,
+        bytes[] memory imageUrls
+    ) public returns (uint) {
         ChatRun storage run = chatRuns[chatRunsCount];
 
         run.owner = msg.sender;
@@ -118,15 +120,17 @@ contract OpenAiChatGptVision {
     function onOracleOpenAiLlmResponse(
         uint runId,
         IOracle.OpenAiResponse memory response,
-        string memory errorMessage
+        bytes memory errorMessage
     ) public onlyOracle {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("user")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("user")),
             "No message to respond to"
         );
 
-        if (!compareStrings(errorMessage, "")) {
+        if (!compareStrings(string(errorMessage), "")) {
             IOracle.Message memory newMessage = IOracle.Message({
                 role: "assistant",
                 content: new IOracle.Content[](1)
@@ -150,15 +154,15 @@ contract OpenAiChatGptVision {
     // @notice Adds a new message to an existing chat run
     // @param message The new message to add
     // @param runId The ID of the chat run
-    function addMessage(string memory message, uint runId) public {
+    function addMessage(bytes memory message, uint runId) public {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("assistant")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("assistant")),
             "No response to previous message"
         );
-        require(
-            run.owner == msg.sender, "Only chat owner can add messages"
-        );
+        require(run.owner == msg.sender, "Only chat owner can add messages");
 
         IOracle.Message memory newMessage = IOracle.Message({
             role: "user",
@@ -176,7 +180,9 @@ contract OpenAiChatGptVision {
     // @param chatId The ID of the chat run
     // @return An array of messages
     // @dev Called by teeML oracle
-    function getMessageHistory(uint chatId) public view returns (IOracle.Message[] memory) {
+    function getMessageHistory(
+        uint chatId
+    ) public view returns (IOracle.Message[] memory) {
         return chatRuns[chatId].messages;
     }
 
@@ -184,7 +190,11 @@ contract OpenAiChatGptVision {
     // @param a The first string
     // @param b The second string
     // @return True if the strings are equal, false otherwise
-    function compareStrings(string memory a, string memory b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) ==
+            keccak256(abi.encodePacked((b))));
     }
 }

@@ -1,13 +1,13 @@
-import {HardhatUserConfig} from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "@xyrusworx/hardhat-solidity-json";
-import 'solidity-docgen';
-import "./tasks/whitelist";
-import "./tasks/deploy";
-import "./tasks/e2e";
-import "./tasks/functions";
+import { HardhatUserConfig } from "hardhat/config"
+import "@nomicfoundation/hardhat-toolbox"
+import "@xyrusworx/hardhat-solidity-json"
+import "solidity-docgen"
+import "./tasks/whitelist"
+import "./tasks/deploy"
+import "./tasks/e2e"
+import "./tasks/functions"
 
-require('dotenv').config()
+require("dotenv").config()
 
 const galadrielDevnet = []
 if (process.env.PRIVATE_KEY_GALADRIEL) {
@@ -24,10 +24,10 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
+        runs: 200,
       },
-      viaIR: true  // Enable the IR optimization to work around the "Stack too deep" error
-    }
+      viaIR: true, // Enable the IR optimization to work around the "Stack too deep" error
+    },
   },
   networks: {
     galadriel: {
@@ -36,14 +36,29 @@ const config: HardhatUserConfig = {
       accounts: galadrielDevnet,
     },
     hardhat: {
-      chainId: 1337,
+      chainId: 31337,
     },
     localhost: {
-      chainId: 1337,
+      chainId: 31337,
       url: "http://127.0.0.1:8545",
       accounts: localhostPrivateKeys,
-    }
+    },
   },
-};
+  etherscan: {
+    apiKey: {
+      galadrielDevnet: "anything",
+    },
+    customChains: [
+      {
+        network: "galadrielDevnet",
+        chainId: 696969,
+        urls: {
+          apiURL: "https://explorer.galadriel.com/api",
+          browserURL: "https://explorer.galadriel.com",
+        },
+      },
+    ],
+  },
+}
 
-export default config;
+export default config

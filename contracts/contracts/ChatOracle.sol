@@ -9,7 +9,6 @@ import "./interfaces/IOracle.sol";
 // @title ChatOracle
 // @notice This contract exposes functionalities for interacting with large language models (LLMs), external tools, and a knowledge base.
 contract ChatOracle is IOracle {
-
     struct PromptTypes {
         string defaultType;
         string openAi;
@@ -111,7 +110,7 @@ contract ChatOracle is IOracle {
     uint public kbQueryCount;
 
     address private owner;
-    
+
     // @notice Event emitted when a function call is added
     event FunctionAdded(
         uint indexed functionId,
@@ -121,22 +120,13 @@ contract ChatOracle is IOracle {
     );
 
     // @notice Event emitted when a knowledge base indexing request is added
-    event KnowledgeBaseIndexRequestAdded(
-        uint indexed id,
-        address sender
-    );
+    event KnowledgeBaseIndexRequestAdded(uint indexed id, address sender);
 
     // @notice Event emitted when a knowledge base is indexed
-    event KnowledgeBaseIndexed(
-        string indexed cid,
-        string indexed indexCid
-    );
+    event KnowledgeBaseIndexed(string indexed cid, string indexed indexCid);
 
     // @notice Event emitted when a knowledge base query is added
-    event KnowledgeBaseQueryAdded(
-        uint indexed kbQueryId,
-        address sender
-    );
+    event KnowledgeBaseQueryAdded(uint indexed kbQueryId, address sender);
 
     constructor() {
         owner = msg.sender;
@@ -159,7 +149,10 @@ contract ChatOracle is IOracle {
     // @notice Updates the whitelist status of an address
     // @param _addressToWhitelist Address to update
     // @param isWhitelisted Whitelist status
-    function updateWhitelist(address _addressToWhitelist, bool isWhitelisted) public onlyOwner {
+    function updateWhitelist(
+        address _addressToWhitelist,
+        bool isWhitelisted
+    ) public onlyOwner {
         whitelistedAddresses[_addressToWhitelist] = isWhitelisted;
     }
 
@@ -219,7 +212,10 @@ contract ChatOracle is IOracle {
     // @notice Creates a new LLM call
     // @param promptCallbackId The callback ID for the LLM call
     // @return The ID of the created prompt
-    function createLlmCall(uint promptCallbackId, IOracle.LlmRequest memory request) public returns (uint) {
+    function createLlmCall(
+        uint promptCallbackId,
+        IOracle.LlmRequest memory request
+    ) public returns (uint) {
         uint promptId = promptsCount;
         callbackAddresses[promptId] = msg.sender;
         promptCallbackIds[promptId] = promptCallbackId;
@@ -270,7 +266,10 @@ contract ChatOracle is IOracle {
         uint promptId,
         uint promptCallBackId
     ) public view returns (string[] memory) {
-        return IChatGpt(callbackAddresses[promptId]).getMessageHistoryContents(promptCallBackId);
+        return
+            IChatGpt(callbackAddresses[promptId]).getMessageHistoryContents(
+                promptCallBackId
+            );
     }
 
     // @notice Retrieves message roles for a prompt
@@ -281,7 +280,10 @@ contract ChatOracle is IOracle {
         uint promptId,
         uint promptCallBackId
     ) public view returns (string[] memory) {
-        return IChatGpt(callbackAddresses[promptId]).getMessageHistoryRoles(promptCallBackId);
+        return
+            IChatGpt(callbackAddresses[promptId]).getMessageHistoryRoles(
+                promptCallBackId
+            );
     }
 
     // @notice Retrieves messages and roles for a prompt
@@ -292,7 +294,10 @@ contract ChatOracle is IOracle {
         uint promptId,
         uint promptCallBackId
     ) public view returns (IOracle.Message[] memory) {
-        return IChatGpt(callbackAddresses[promptId]).getMessageHistory(promptCallBackId);
+        return
+            IChatGpt(callbackAddresses[promptId]).getMessageHistory(
+                promptCallBackId
+            );
     }
 
     // @notice Creates a new function call
@@ -315,7 +320,12 @@ contract ChatOracle is IOracle {
 
         functionsCount++;
 
-        emit FunctionAdded(functionId, functionInput, functionCallbackId, msg.sender);
+        emit FunctionAdded(
+            functionId,
+            functionInput,
+            functionCallbackId,
+            msg.sender
+        );
 
         return functionId;
     }
@@ -334,11 +344,12 @@ contract ChatOracle is IOracle {
     ) public onlyWhitelisted {
         require(!isFunctionProcessed[functionId], "Function already processed");
         isFunctionProcessed[functionId] = true;
-        IChatGpt(functionCallbackAddresses[functionId]).onOracleFunctionResponse(
-            functionCallBackId,
-            response,
-            errorMessage
-        );
+        IChatGpt(functionCallbackAddresses[functionId])
+            .onOracleFunctionResponse(
+                functionCallBackId,
+                response,
+                errorMessage
+            );
     }
 
     // @notice Marks a function call as processed
@@ -352,7 +363,10 @@ contract ChatOracle is IOracle {
     // @param promptCallbackId The callback ID for the LLM call
     // @param config The OpenAI request configuration
     // @return The ID of the created prompt
-    function createOpenAiLlmCall(uint promptCallbackId, IOracle.OpenAiRequest memory config) public returns (uint) {
+    function createOpenAiLlmCall(
+        uint promptCallbackId,
+        IOracle.OpenAiRequest memory config
+    ) public returns (uint) {
         uint promptId = promptsCount;
         callbackAddresses[promptId] = msg.sender;
         promptCallbackIds[promptId] = promptCallbackId;
@@ -399,7 +413,10 @@ contract ChatOracle is IOracle {
     // @param promptCallbackId The callback ID for the LLM call
     // @param config The Groq request configuration
     // @return The ID of the created prompt
-    function createGroqLlmCall(uint promptCallbackId, IOracle.GroqRequest memory config) public returns (uint) {
+    function createGroqLlmCall(
+        uint promptCallbackId,
+        IOracle.GroqRequest memory config
+    ) public returns (uint) {
         uint promptId = promptsCount;
         callbackAddresses[promptId] = msg.sender;
         promptCallbackIds[promptId] = promptCallbackId;
@@ -445,7 +462,10 @@ contract ChatOracle is IOracle {
     // @notice Adds a knowledge base with the given CID
     // @param cid The IPFS CID of the knowledge base
     function addKnowledgeBase(string memory cid) public {
-        require(bytes(kbIndexes[cid]).length == 0, "Index already set for this CID");
+        require(
+            bytes(kbIndexes[cid]).length == 0,
+            "Index already set for this CID"
+        );
         uint kbIndexingRequestId = kbIndexingRequestCount;
         kbIndexingRequests[kbIndexingRequestId] = cid;
         kbIndexingRequestCount++;
@@ -457,18 +477,30 @@ contract ChatOracle is IOracle {
     // @param indexCid The IPFS CID of the index
     // @param error Any error message
     // @dev Called by teeML oracle
-    function addKnowledgeBaseIndex(uint kbIndexingRequestId, string memory indexCid, string memory error) public onlyWhitelisted {
-        require(!isKbIndexingRequestProcessed[kbIndexingRequestId], "Indexing request already processed");
+    function addKnowledgeBaseIndex(
+        uint kbIndexingRequestId,
+        string memory indexCid,
+        string memory error
+    ) public onlyWhitelisted {
+        require(
+            !isKbIndexingRequestProcessed[kbIndexingRequestId],
+            "Indexing request already processed"
+        );
         kbIndexes[kbIndexingRequests[kbIndexingRequestId]] = indexCid;
         kbIndexingRequestErrors[kbIndexingRequestId] = error;
         isKbIndexingRequestProcessed[kbIndexingRequestId] = true;
-        emit KnowledgeBaseIndexed(kbIndexingRequests[kbIndexingRequestId], indexCid);
+        emit KnowledgeBaseIndexed(
+            kbIndexingRequests[kbIndexingRequestId],
+            indexCid
+        );
     }
 
     // @notice Marks a knowledge base indexing request as processed
     // @param kbIndexingRequestId The ID of the indexing request
     // @dev Called by teeML oracle
-    function markKnowledgeBaseAsProcessed(uint kbIndexingRequestId) public onlyWhitelisted {
+    function markKnowledgeBaseAsProcessed(
+        uint kbIndexingRequestId
+    ) public onlyWhitelisted {
         isKbIndexingRequestProcessed[kbIndexingRequestId] = true;
     }
 
@@ -481,12 +513,18 @@ contract ChatOracle is IOracle {
     function createKnowledgeBaseQuery(
         uint kbQueryCallbackId,
         string memory cid,
-        string memory query,
+        bytes memory query,
         uint32 num_documents
     ) public returns (uint) {
-        require(bytes(kbIndexes[cid]).length > 0, "Index not available for this CID");
+        require(
+            bytes(kbIndexes[cid]).length > 0,
+            "Index not available for this CID"
+        );
         require(bytes(query).length > 0, "Query cannot be empty");
-        require(num_documents > 0, "Number of documents should be greater than 0");
+        require(
+            num_documents > 0,
+            "Number of documents should be greater than 0"
+        );
         uint kbQueryId = kbQueryCount;
         kbQueries[kbQueryId].cid = cid;
         kbQueries[kbQueryId].query = query;
@@ -515,19 +553,25 @@ contract ChatOracle is IOracle {
         string[] memory documents,
         string memory errorMessage
     ) public onlyWhitelisted {
-        require(!isKbQueryProcessed[kbQueryId], "Knowledge base query already processed");
-        isKbQueryProcessed[kbQueryId] = true;
-        IChatGpt(kbQueryCallbackAddresses[kbQueryId]).onOracleKnowledgeBaseQueryResponse(
-            kbQueryCallbackId,
-            documents,
-            errorMessage
+        require(
+            !isKbQueryProcessed[kbQueryId],
+            "Knowledge base query already processed"
         );
+        isKbQueryProcessed[kbQueryId] = true;
+        IChatGpt(kbQueryCallbackAddresses[kbQueryId])
+            .onOracleKnowledgeBaseQueryResponse(
+                kbQueryCallbackId,
+                documents,
+                errorMessage
+            );
     }
 
     // @notice Marks a knowledge base query as processed
     // @param kbQueryId The ID of the query
     // @dev Called by teeML oracle
-    function markKnowledgeBaseQueryAsProcessed(uint kbQueryId) public onlyWhitelisted {
+    function markKnowledgeBaseQueryAsProcessed(
+        uint kbQueryId
+    ) public onlyWhitelisted {
         isKbQueryProcessed[kbQueryId] = true;
     }
 }

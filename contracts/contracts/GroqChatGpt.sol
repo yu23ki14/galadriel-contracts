@@ -8,7 +8,6 @@ import "./interfaces/IOracle.sol";
 // @title GroqChatGpt
 // @notice This contract interacts with teeML Oracle to handle chat interactions using the Groq model.
 contract GroqChatGpt {
-
     struct ChatRun {
         address owner;
         IOracle.Message[] messages;
@@ -41,17 +40,17 @@ contract GroqChatGpt {
         chatRunsCount = 0;
 
         config = IOracle.GroqRequest({
-            model : "llama-3.1-8b-instant",
-            frequencyPenalty : 21, // > 20 for null
-            logitBias : "", // empty str for null
-            maxTokens : 1000, // 0 for null
-            presencePenalty : 21, // > 20 for null
-            responseFormat : "{\"type\":\"text\"}",
-            seed : 0, // null
-            stop : "", // null
-            temperature : 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
-            topP : 101, // Percentage 0-100, > 100 means null
-            user : "" // null
+            model: "llama-3.1-8b-instant",
+            frequencyPenalty: 21, // > 20 for null
+            logitBias: "", // empty str for null
+            maxTokens: 1000, // 0 for null
+            presencePenalty: 21, // > 20 for null
+            responseFormat: '{"type":"text"}',
+            seed: 0, // null
+            stop: "", // null
+            temperature: 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
+            topP: 101, // Percentage 0-100, > 100 means null
+            user: "" // null
         });
     }
 
@@ -76,7 +75,7 @@ contract GroqChatGpt {
     // @notice Starts a new chat
     // @param message The initial message to start the chat with
     // @return The ID of the newly created chat
-    function startChat(string memory message) public returns (uint) {
+    function startChat(bytes memory message) public returns (uint) {
         ChatRun storage run = chatRuns[chatRunsCount];
 
         run.owner = msg.sender;
@@ -101,19 +100,27 @@ contract GroqChatGpt {
     function onOracleGroqLlmResponse(
         uint runId,
         IOracle.GroqResponse memory response,
-        string memory errorMessage
+        bytes memory errorMessage
     ) public onlyOracle {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("user")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("user")),
             "No message to respond to"
         );
-        if (!compareStrings(errorMessage, "")) {
-            IOracle.Message memory newMessage = createTextMessage("assistant", errorMessage);
+        if (!compareStrings(string(errorMessage), "")) {
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                errorMessage
+            );
             run.messages.push(newMessage);
             run.messagesCount++;
         } else {
-            IOracle.Message memory newMessage = createTextMessage("assistant", response.content);
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                response.content
+            );
             run.messages.push(newMessage);
             run.messagesCount++;
         }
@@ -122,15 +129,15 @@ contract GroqChatGpt {
     // @notice Adds a new message to an existing chat run
     // @param message The new message to add
     // @param runId The ID of the chat run
-    function addMessage(string memory message, uint runId) public {
+    function addMessage(bytes memory message, uint runId) public {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("assistant")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("assistant")),
             "No response to previous message"
         );
-        require(
-            run.owner == msg.sender, "Only chat owner can add messages"
-        );
+        require(run.owner == msg.sender, "Only chat owner can add messages");
 
         IOracle.Message memory newMessage = createTextMessage("user", message);
         run.messages.push(newMessage);
@@ -143,7 +150,9 @@ contract GroqChatGpt {
     // @param chatId The ID of the chat run
     // @return An array of messages
     // @dev Called by teeML oracle
-    function getMessageHistory(uint chatId) public view returns (IOracle.Message[] memory) {
+    function getMessageHistory(
+        uint chatId
+    ) public view returns (IOracle.Message[] memory) {
         return chatRuns[chatId].messages;
     }
 
@@ -151,7 +160,10 @@ contract GroqChatGpt {
     // @param role The role of the message
     // @param content The content of the message
     // @return The created message
-    function createTextMessage(string memory role, string memory content) private pure returns (IOracle.Message memory) {
+    function createTextMessage(
+        string memory role,
+        bytes memory content
+    ) private pure returns (IOracle.Message memory) {
         IOracle.Message memory newMessage = IOracle.Message({
             role: role,
             content: new IOracle.Content[](1)
@@ -165,7 +177,11 @@ contract GroqChatGpt {
     // @param a The first string
     // @param b The second string
     // @return True if the strings are equal, false otherwise
-    function compareStrings(string memory a, string memory b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) ==
+            keccak256(abi.encodePacked((b))));
     }
 }
